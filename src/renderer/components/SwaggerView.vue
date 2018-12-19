@@ -12,7 +12,7 @@
         search
         enter-button="Fetch"
         placeholder="Swagger Json URL..."
-        :value="jsonUrl"
+        v-model="jsonUrl"
         @on-search="fetchSwaggerJson"
       />
       <Row>
@@ -77,7 +77,7 @@ export default {
         patch: "cyan",
         delete: "error"
       },
-      jsonUrl: "http://localhost:8080/v2/api-docs",
+      jsonUrl: "https://192.168.6.75:8080/v2/api-docs",
       jsonData: {},
       viewTags: [],
       tableColumn: [
@@ -135,7 +135,13 @@ export default {
   },
   methods: {
     async fetchSwaggerJson(input) {
-      const res = await this.$http.get(input);
+      let res;
+      try {
+        res = await this.$http.get(input);
+      } catch (error) {
+        this.$Message.error(error.message);
+        return;
+      }
       this.jsonData = res.data;
       this.viewTags = this.jsonData.tags;
 
