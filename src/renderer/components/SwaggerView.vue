@@ -1,136 +1,52 @@
 <template>
-  <Card style="margin:10px">
-    <router-link :to="'/'">
-      <Button>
-        <Icon type="ios-arrow-back"></Icon>
-      </Button>
-    </router-link>
-
-    <Card :bordered="false" :dis-hover="true">
-      <Input
-        slot="title"
-        search
-        enter-button="Fetch"
-        placeholder="Swagger Json URL..."
-        v-model="jsonUrl"
-        @on-search="fetchSwaggerJson"
-      />
-      <Row>
-        <Col span="8">
-          <Menu width="auto" @on-select="selectPath">
-            <Submenu v-for="tag in viewTags" :name="tag.name" v-bind:key="tag.name">
-              <template slot="title">
-                <Icon type="ios-paper"/>
-                <strong>{{tag.name.toUpperCase()}}</strong>
-                <br>
-                <span>{{tag.description}}</span>
-              </template>
-              <MenuItem v-for="path in tag.paths" :name="path.name" v-bind:key="path.name">
-                <span style="display:inline-block; width: 58px">{{path.method.toUpperCase()}}</span>
-                <span>{{path.path}}</span>
-                <br>
-                <span>{{path.detail.summary}}</span>
-              </MenuItem>
-            </Submenu>
-          </Menu>
-        </Col>
-
-        <Col span="16">
-          <div style="margin-left:5px" v-if="selectedPathDetail">
-            <Tag :color="methodColors[selectedPathDetail.method.toLowerCase()]" >
-              {{selectedPathDetail.method.toUpperCase()}}
-            </Tag>
-            {{selectedPathDetail.path}}
+  <div style="margin-top: 10px">
+    <Sider width="300" :style="{position: 'fixed', height: '99vh',left: 0, overflow: 'auto'}">
+      <Menu width="auto" @on-select="selectPath">
+        <Submenu v-for="tag in viewTags" :name="tag.name" v-bind:key="tag.name">
+          <template slot="title">
+            <Icon type="ios-paper"/>
+            <strong>{{tag.name.toUpperCase()}}</strong>
             <br>
+            <span>{{tag.description}}</span>
+          </template>
+          <MenuItem v-for="path in tag.paths" :name="path.name" v-bind:key="path.name">
+            <span style="display:inline-block; width: 58px">{{path.method.toUpperCase()}}</span>
+            <span>{{path.path}}</span>
             <br>
-            <Table :columns="tableColumn" :data="selectedPathDetail.parameters"></Table>
-            <br>
-            <Button type="success" @click="submit" long>Try it out</Button>
-            <br>
-            <br>
-            <div v-show="responseCode > 0">
-              Response code: {{responseCode}}
-              <json-viewer
-                :value="responseData"
-                :expand-depth="10"
-                copyable
-                boxed
-                sort
-                theme="my-awesome-json-theme"
-              ></json-viewer>
-            </div>
-          </div>
-        </Col>
-      </Row>
-    </Card>
-  </Card>
+            <span>{{path.detail.summary}}</span>
+          </MenuItem>
+        </Submenu>
+      </Menu>
+    </Sider>
+    <Layout :style="{marginLeft: '300px'}">
+      <Header :style="{background: '#fff', boxShadow: '0 2px 3px 2px rgba(0,0,0,.1)'}">
+        <router-link :to="'/'" style="margin-left:-25px" >
+          <Button>
+            <Icon type="ios-arrow-back"></Icon>
+          </Button>
+        </router-link>
+        <span style="font-weight: bolder; font-size:18px; vertical-align: middle; margin-left:10px;">{{jsonUrl}}</span>
+      </Header>
+      <Content :style="{padding: '16px'}">
+        <div v-if="selectedPathDetail">
+          <ApiRequestView :api-info="selectedPathDetail" :json-url="jsonUrl" :definitions="this.jsonData.definitions"></ApiRequestView> 
+        </div>
+      </Content>
+    </Layout>
+  </div>
 </template>
 
 <script>
+import ApiRequestView from './ApiRequestView.vue';
 export default {
+  components: {ApiRequestView},
   data() {
     return {
-      methodColors: {
-        get: "primary",
-        post: "success",
-        put: "warning",
-        patch: "cyan",
-        delete: "error"
-      },
-      jsonUrl: "https://192.168.6.75:8080/v2/api-docs",
+      jsonUrl: "",
       jsonData: {},
       viewTags: [],
-      tableColumn: [
-        {
-          title: "Parameter",
-          key: "name",
-          render: (h, params) => {
-            return (
-              <span>
-                {" "}
-                {params.row.required ? (
-                  <b>{params.row.name}</b>
-                ) : (
-                  params.row.name
-                )}
-              </span>
-            );
-          }
-        },
-        {
-          title: "Value",
-          key: "value",
-          render: (h, params) => {
-            return (
-              <div>
-                <i-input
-                  placeholder="Enter value"
-                  v-model={this.paramValues[params.row.name]}
-                />
-              </div>
-            );
-          }
-        },
-        {
-          title: "Description",
-          key: "description"
-        },
-        {
-          title: "DataType",
-          key: "type",
-          width: 90
-        },
-        {
-          title: "ParamType",
-          key: "in",
-          width: 100
-        }
-      ],
-      paramValues: {},
       pathDetailMap: {},
       selectedPathDetail: null,
-      responseCode: 0,
-      responseData: {}
     };
   },
   methods: {
@@ -170,45 +86,15 @@ export default {
       this.viewTags.forEach(tag => {
         tag.paths = tagPathMap[tag.name] || [];
       });
-      console.log(this.viewTags);
-    },
-    async submit() {
-      const url = `${this.getDomain(this.jsonUrl)}${this.selectedPathDetail.path}`;
-      const pathMethod = this.selectedPathDetail.method + url
-
-      const queryType = this.selectedPathDetail.parameters
-        ? this.selectedPathDetail.parameters[0].in
-        : "query";
-      let body = queryType === "formData" ? this.$qs.stringify(this.paramValues):  this.paramValues;
-      let res = {};
-      try {
-        res = await this.$http({
-          method: this.selectedPathDetail.method,
-          url,
-          data: body
-        });
-      } catch (e) {
-        res = e.response;
-      }
-      // 防止点击前面请求影响到后门的结果
-      if(pathMethod == `${this.selectedPathDetail.method}${this.getDomain(this.jsonUrl)}${this.selectedPathDetail.path}`){
-        this.responseData = res.data;
-        this.responseCode = res.status;
-      }
-    },
-    getDomain(url) {
-      const array = url.split("://");
-      const subpart = array[1].split("/");
-      return `${array[0]}://${subpart[0]}`;
     },
     selectPath(methodPath) {
       this.selectedPathDetail = this.pathDetailMap[methodPath];
-      console.log(this.selectedPathDetail);
+      console.log('SELECT', methodPath);
     }
+  },
+  created: function() {
+    this.jsonUrl = localStorage.getItem("API_DOCS_URL")
+    this.fetchSwaggerJson(this.jsonUrl)
   }
 };
 </script>
-
-<style lang="scss">
-@import "my-awesome-json-theme.scss";
-</style>
