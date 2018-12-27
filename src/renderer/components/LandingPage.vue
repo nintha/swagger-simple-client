@@ -18,7 +18,7 @@ export default {
   name: "landing-page",
   data: function() {
     return {
-      jsonUrl: "http://192.168.6.75:8080/v2/api-docs",
+      jsonUrl: "http://localhost:8080/v2/api-docs",
       jsonData: {},
       viewTags: []
     };
