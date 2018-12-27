@@ -1,5 +1,5 @@
 <template>
-  <div style="margin-top: 10px">
+  <div>
     <Sider width="300" :style="{position: 'fixed', height: '99vh',left: 0, overflow: 'auto'}">
       <Menu width="auto" @on-select="selectPath">
         <Submenu v-for="tag in viewTags" :name="tag.name" v-bind:key="tag.name">
@@ -71,7 +71,7 @@ export default {
             if (!tagPathMap[el]) tagPathMap[el] = [];
 
             const wrap = {
-              name: `${method} ${pathName}`,
+              name: `${method}#${pathName}`,
               method,
               path: pathName,
               detail: { method, path: pathName, ...detail }
@@ -89,7 +89,8 @@ export default {
     },
     selectPath(methodPath) {
       this.selectedPathDetail = this.pathDetailMap[methodPath];
-      console.log('SELECT', methodPath);
+      this.selectedPathDetail.methodPath = methodPath
+      console.log('SELECT', methodPath, this.selectedPathDetail);
     }
   },
   created: function() {

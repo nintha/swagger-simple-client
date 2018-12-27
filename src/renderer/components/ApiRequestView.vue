@@ -14,14 +14,26 @@
     </Button>
     <br>
     <br>
-    <div v-show="responseCode > 0">
-      Response code: {{responseCode}}
-      <pre><code class="json">{{responseData}}</code></pre>
-    </div>
+    <Card dis-hover v-show="responseCode > 0">
+      <p slot="title">Response code: {{responseCode}}</p>
+      <div style="overflow: overlay;">
+        <pre><code class="json">{{responseData}}</code></pre>
+      </div>
+    </Card>
+    <br>
+    <Card dis-hover v-show="definitionNames.length > 0">
+      <p slot="title">Model</p>
+      <DefinitionView :definitions="definitions" :names="definitionNames"></DefinitionView>
+    </Card>
   </div>
 </template>
 <script>
+import Qs from "qs";
+import DefinitionView from "./DefinitionView";
 export default {
+  components: {
+    DefinitionView
+  },
   data: function() {
     return {
       methodColors: {
@@ -38,7 +50,6 @@ export default {
           render: (h, params) => {
             return (
               <span>
-                {" "}
                 {params.row.required ? (
                   <b>{params.row.name}</b>
                 ) : (
@@ -54,19 +65,12 @@ export default {
           render: (h, params) => {
             return (
               <div>
-                {params.row.type ? (
-                  <i-input
-                    placeholder="Enter value"
-                    v-model={this.paramValues[params.row.name]}
-                  />
-                ) : (
-                  <i-input
-                    v-model={this.paramValues[params.row.name]}
-                    type="textarea"
-                    autosize={{ minRows: 3, maxRows: 20 }}
-                    placeholder="Enter something..."
-                  />
-                )}
+                <i-input
+                  v-model={this.paramValues[params.row.name]}
+                  type="textarea"
+                  autosize={{ minRows: 1, maxRows: 20 }}
+                  placeholder="Enter Value"
+                />
               </div>
             );
           }
@@ -79,12 +83,16 @@ export default {
           title: "DataType",
           key: "type",
           render: (h, params) => {
-            const name = params.row.type || params.row.schema.$ref.split("/")[2]
-            const definition = params.row.type || this.parseDefinition(this.definitions[name])
-
+            const name =
+              params.row.type || params.row.schema.$ref.split("/")[2];
             return (
               <div>
-                {params.row.type || (<div><b># {name}</b>{definition}</div>)  }
+                {params.row.type || (
+                  <DefinitionView
+                    definitions={this.definitions}
+                    names={[name]}
+                  />
+                )}
               </div>
             );
           }
@@ -98,7 +106,8 @@ export default {
       paramValues: {},
       responseCode: 0,
       responseData: {},
-      inRequest: false
+      inRequest: false,
+      definitionNames: []
     };
   },
   props: {
@@ -106,42 +115,46 @@ export default {
     jsonUrl: String,
     definitions: Object
   },
-  watch:{
-    apiInfo: function(val, oldVal){
-      this.responseCode = 0
-      this.responseData = {}
-      this.paramValues = {}
+  watch: {
+    apiInfo: function(val, oldVal) {
+      this.saveApiContext(oldVal.methodPath);
+      this.refresh();
     }
   },
   methods: {
     async submit() {
-      this.inRequest = true
+      this.inRequest = true;
       this.$Loading.start();
       // 校验必传参数
-      const requiredParams = (this.apiInfo.parameters || [] ).filter(v=>v.required).map(v=>v.name)
-      const lackedParams = requiredParams.filter(v => !this.paramValues[v])
-      if(lackedParams.length > 0){
-        this.$Message.warning(`Parameter(${lackedParams.join(', ')}) is required`);
-        this.inRequest = false
+      const lacks = this.checkLackedParams();
+      if (lacks.length > 0) {
+        const message = `Parameter(${lacks.join(", ")}) is required`;
+        this.$Message.warning(message);
+        this.inRequest = false;
         this.$Loading.error();
         return;
       }
 
       const url = this.getDomain(this.jsonUrl) + this.apiInfo.path;
-      const pathMethod = this.apiInfo.method + url;
+      const params = Object.assign({}, this.paramValues);
 
-      const queryType = this.apiInfo.parameters
-        ? this.apiInfo.parameters[0].in
-        : "query";
-      let body = ["formData", "query"].includes(queryType)
-        ? this.$qs.stringify(this.paramValues)
-        : this.paramValues;
+      this.apiInfo.parameters
+        .filter(it => it.type === "array")
+        .forEach(it => {
+          const value = params[it.name];
+          if (value) params[it.name] = value.split("\n");
+        });
       let res = {};
       try {
         res = await this.$http({
           method: this.apiInfo.method,
           url,
-          data: body
+          params: params, // query
+          data: params, // formdata
+          paramsSerializer: function(params) {
+            // 处理array类型参数格式化
+            return Qs.stringify(params, { arrayFormat: "repeat" });
+          }
         });
         this.$Loading.finish();
       } catch (e) {
@@ -150,27 +163,79 @@ export default {
       }
       this.responseData = res.data;
       this.responseCode = res.status;
-      this.inRequest = false
+      this.inRequest = false;
+    },
+    checkLackedParams() {
+      const requiredParams = (this.apiInfo.parameters || [])
+        .filter(v => v.required)
+        .map(v => v.name);
+      return requiredParams.filter(v => !this.paramValues[v]);
     },
     getDomain(url) {
       const array = url.split("://");
       const subpart = array[1].split("/");
       return `${array[0]}://${subpart[0]}`;
     },
-    parseDefinition(definition){
-      if(definition.type==='object'){
-        const props = definition.properties
-        return Object.keys(props).map(field => 
-          <div><b>{props[field].type}</b> {field}: <i>{props[field].description}</i></div>
-        )
-      }else{
-        console.error('cant parse definition', definition)
-        return []
+    parseDefinition(definition) {
+      if (definition.type === "object") {
+        const props = definition.properties;
+        return Object.keys(props).map(field => (
+          <div>
+            <b>{field}</b> ({props[field].format || props[field].type}):{" "}
+            <i>{props[field].description}</i>
+          </div>
+        ));
+      } else {
+        console.error("cant parse definition", definition);
+        return [];
       }
+    },
+    refresh() {
+      const context = this.loadApiContext(this.apiInfo.methodPath);
+      this.responseCode = context.responseCode;
+      this.responseData = context.responseData;
+      this.paramValues = context.paramValues;
+
+      this.definitionNames = this.apiInfo.parameters
+        ? this.apiInfo.parameters
+            .filter(it => it.schema)
+            .map(it => it.schema.$ref.split("/")[2])
+        : [];
+    },
+    getEmptyApiContext() {
+      return {
+        responseCode: 0,
+        responseData: {},
+        paramValues: {}
+      };
+    },
+    saveApiContext(apiName) {
+      if (
+        this.responseCode === 0 &&
+        Object.keys(this.paramValues).length === 0
+      ) {
+        // 不保存空上下文
+        return;
+      }
+
+      const context = {
+        responseCode: this.responseCode,
+        responseData: this.responseData,
+        paramValues: this.paramValues
+      };
+
+      localStorage.setItem(
+        "SWAGGER_API_CONTEXT::" + apiName,
+        JSON.stringify(context)
+      );
+    },
+    loadApiContext(apiName) {
+      const json = localStorage.getItem("SWAGGER_API_CONTEXT::" + apiName);
+      return json ? JSON.parse(json) : this.getEmptyApiContext();
     }
   },
-  created(){
-    console.log(this.definitions)
+  created() {
+    this.refresh();
   }
 };
 </script>

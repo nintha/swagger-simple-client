@@ -15,7 +15,7 @@
   
 ::-webkit-scrollbar{
   width: 6px;
-  height: 4px;
+  height: 6px;
 }
 ::-webkit-scrollbar-thumb{
   border-radius: 1em;
