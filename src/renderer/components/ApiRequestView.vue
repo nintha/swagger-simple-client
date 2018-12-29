@@ -16,7 +16,7 @@
     <br>
     <Card dis-hover v-show="responseCode > 0">
       <p slot="title">Response code: {{responseCode}}</p>
-      <div style="overflow: overlay;">
+      <div style="overflow: overlay; max-height:600px">
         <pre><code class="json">{{responseData}}</code></pre>
       </div>
     </Card>

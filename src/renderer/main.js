@@ -10,11 +10,9 @@ import store from './store'
 import iView from 'iview';
 import 'iview/dist/styles/iview.css';
 
-import JsonViewer from 'vue-json-viewer'
 import VueHighlightJS from 'vue-highlightjs'
 
 Vue.use(iView);
-Vue.use(JsonViewer)
 Vue.use(VueHighlightJS)
 
 if (!process.env.IS_WEB) Vue.use(require('vue-electron'))

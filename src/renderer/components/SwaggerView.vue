@@ -1,6 +1,6 @@
 <template>
   <div>
-    <Sider width="300" :style="{position: 'fixed', height: '99vh',left: 0, overflow: 'auto'}">
+    <Sider width="300" :style="{position: 'fixed', height: '99vh',left: 0, overflow: 'auto', backgroundColor: 'white', borderRight: '1px #CCC solid'}">
       <Menu width="auto" @on-select="selectPath">
         <Submenu v-for="tag in viewTags" :name="tag.name" v-bind:key="tag.name">
           <template slot="title">
@@ -27,9 +27,21 @@
         </router-link>
         <span style="font-weight: bolder; font-size:18px; vertical-align: middle; margin-left:10px;">{{jsonUrl}}</span>
       </Header>
-      <Content :style="{padding: '16px'}">
-        <div v-if="selectedPathDetail">
-          <ApiRequestView :api-info="selectedPathDetail" :json-url="jsonUrl" :definitions="this.jsonData.definitions"></ApiRequestView> 
+      <Content>
+        <div style="margin-top:10px; padding:0 10px; background-color: white;">
+          <Tabs style="margin:0 10px;">
+              <TabPane label="Flow">
+                <ApiFlow :path-detail-map="pathDetailMap" :json-url="jsonUrl" :definitions="jsonData.definitions"></ApiFlow>
+              </TabPane>
+              <TabPane label="Main">
+                <div v-if="selectedPathDetail">
+                  <ApiRequestView :api-info="selectedPathDetail" :json-url="jsonUrl" :definitions="jsonData.definitions" :view-tags="viewTags"></ApiRequestView> 
+                </div>
+                <h1 v-else>
+                  Please select one API
+                </h1>
+              </TabPane>
+          </Tabs>
         </div>
       </Content>
     </Layout>
@@ -38,8 +50,9 @@
 
 <script>
 import ApiRequestView from './ApiRequestView.vue';
+import ApiFlow from './ApiFlow'
 export default {
-  components: {ApiRequestView},
+  components: {ApiRequestView, ApiFlow},
   data() {
     return {
       jsonUrl: "",
@@ -78,6 +91,7 @@ export default {
             };
             tagPathMap[el].push(wrap);
             pathDetailMap[wrap.name] = wrap.detail;
+            pathDetailMap[wrap.name].methodPath = wrap.name
           });
         }
       }
@@ -89,7 +103,6 @@ export default {
     },
     selectPath(methodPath) {
       this.selectedPathDetail = this.pathDetailMap[methodPath];
-      this.selectedPathDetail.methodPath = methodPath
       console.log('SELECT', methodPath, this.selectedPathDetail);
     }
   },

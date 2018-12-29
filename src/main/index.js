@@ -1,5 +1,5 @@
-import { app, BrowserWindow } from 'electron'
-
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import fs from 'fs'
 /**
  * Set `__static` path to static files in production
  * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-static-assets.html
@@ -13,12 +13,12 @@ const winURL = process.env.NODE_ENV === 'development'
   ? `http://localhost:9080`
   : `file://${__dirname}/index.html`
 
-function createWindow () {
+function createWindow() {
   /**
    * Initial window options
    */
   mainWindow = new BrowserWindow({
-    webPreferences: {webSecurity: false},
+    webPreferences: { webSecurity: false },
     height: 563,
     useContentSize: true,
     width: 1000
@@ -44,6 +44,28 @@ app.on('activate', () => {
     createWindow()
   }
 })
+
+ipcMain.on('save-file', (event, arg) => {
+  dialog.showSaveDialog(function (filename) {
+    if (filename) {
+      fs.writeFileSync(filename, arg);
+      event.returnValue = filename
+    } else {
+      event.returnValue = null
+    }
+  })
+})
+
+ipcMain.on('read-file', (event, arg) => {
+  dialog.showOpenDialog(function (filenames) {
+    if (filenames) {
+      event.returnValue = fs.readFileSync(filenames[0]).toString()
+    } else {
+      event.returnValue = null
+    }
+  })
+})
+
 
 /**
  * Auto Updater
