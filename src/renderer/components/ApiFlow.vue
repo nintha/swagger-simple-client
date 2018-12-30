@@ -7,8 +7,14 @@
       <Button type="error" @click="resetFlow">Reset</Button>
     </div>
     <div style="background-color: #CCC; height: 1px; margin: 15px 0;"></div>
-    <div v-for="card in cards">
-      <div v-if="getApiInfo(card.methodPath)">
+    <div v-for="(card, index) in cards">
+      <div v-if="getApiInfo(card.methodPath)" :id="'card-id-' + index">
+        <div>
+          <Button size="small">Index {{index}}</Button>
+          <Button size="small" icon="md-arrow-round-up" @click="moveUp(index)"></Button>
+          <Button size="small" icon="md-arrow-round-down" @click="moveDown(index)"></Button>
+          <Button size="small" icon="md-close" @click="removeCardByIndex(index)"></Button>
+        </div>
         <SingleApiView
           :flow-context="context"
           :api-info="getApiInfo(card.methodPath)"
@@ -20,8 +26,9 @@
       </div>
       <div style="background-color: #CCC; height: 1px; margin: 15px 0;"></div>
     </div>
-    <Button type="primary" long>New card</Button>
-    <div style="margin-bottom:50px"></div>
+    <div style="margin-bottom:50px">
+      <Button type="primary" long @click="addCard">New card [ {{selectedPath}} ]</Button>
+    </div>
   </div>
 </template>
 <script>
@@ -35,6 +42,7 @@ export default {
     jsonUrl: String,
     definitions: Object,
     viewTags: Array,
+    selectedPath: String
   },
   data() {
     return {
@@ -52,18 +60,23 @@ export default {
     getApiInfo(methodPath) {
       return this.pathDetailMap[methodPath];
     },
-    // 更新API卡片列表
-    setCards(cards) {
+    // 强制重载组件
+    refreshCardsAsync() {
+      const data = this.cards;
       this.cards = [];
-      // 强制重载组件
-      process.nextTick(() => {
-        this.cards = cards;
+      return new Promise(suc => {
+        process.nextTick(() => {
+          this.cards = data;
+          suc();
+        });
       });
     },
-    getCardRefs(){
-      return this.cards.map(it => this.$refs[it.methodPath][0])
+    getCardRefs() {
+      return this.cards.map(it => this.$refs[it.methodPath][0]);
     },
     async runFlow() {
+      // 清理之前的日志
+      this.getCardRefs().forEach(it => it.resetResult());
       try {
         for (let card of this.cards) {
           // this.solvePlaceholder(card, this.context);
@@ -73,31 +86,64 @@ export default {
           }
         }
       } catch (error) {
-        console.warn('runFlow', error.message);
+        console.warn("runFlow", error.message);
       }
     },
     resetFlow() {
       this.cards = [];
     },
     exportFlow() {
-      const cards = this.getCardRefs().map(it => it.getCardInfo())
-      if(cards || cards.length == 0){
+      const cards = this.getCardRefs().map(it => it.getCardInfo());
+      if (!cards || cards.length == 0) {
         this.$Message.warning("Can't export empty Flow");
-        return
+        return;
       }
       ipcRenderer.sendSync("save-file", JSON.stringify(cards));
     },
     importFlow() {
-      const cards = this.getCardRefs().map(it => it.getCardInfo())
-      if(cards && cards.length > 0){
+      const cards = this.getCardRefs().map(it => it.getCardInfo());
+      if (cards && cards.length > 0) {
         this.$Message.warning("Only import data when the Flow is empty");
-        return
+        return;
       }
       const json = ipcRenderer.sendSync("read-file");
       if (json) {
-        this.setCards(JSON.parse(json))
+        this.cards = JSON.parse(json);
+        this.refreshCardsAsync()
       }
-    }
+    },
+    addCard() {
+      if (this.selectedPath) {
+        this.cards.push({
+          methodPath: this.selectedPath
+        });
+      }
+    },
+    insertCardByIndex(index, card){
+      this.cards.splice(index, 0, card);
+    },
+    removeCardByIndex(index) {
+      this.cards.splice(index, 1);
+    },
+    moveUp(index) {
+      if (index > 0) this.swapCard(index, index - 1);
+    },
+    moveDown(index) {
+      if (index < this.cards.length - 1) this.swapCard(index, index + 1);
+    },
+    async swapCard(index1, index2) {
+      const card1 = this.cards[index1];
+      const card2 = this.cards[index2];
+      this.removeCardByIndex(index1);
+      this.insertCardByIndex(index1, card2);
+      this.removeCardByIndex(index2);
+      this.insertCardByIndex(index2, card1);
+
+      console.log(this.cards)
+    },
+
+
+    // end method
   }
 };
 </script>

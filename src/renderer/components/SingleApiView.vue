@@ -36,6 +36,11 @@ export default {
     definitions: Object,
     serverUrl: String
   },
+  // watch: {
+  //   cardInfo(val, oldVal){
+  //     console.log('watch cardInfo', val)
+  //   }
+  // },
   data() {
     return {
       methodColors: {

@@ -138,11 +138,10 @@ export default {
       const url = this.getDomain(this.jsonUrl) + this.apiInfo.path;
       const params = Object.assign({}, this.paramValues);
 
-      this.apiInfo.parameters
+      (this.apiInfo.parameters || [])
         .filter(it => it.type === "array")
         .forEach(it => {
-          const value = params[it.name];
-          if (value) params[it.name] = value.split("\n");
+          if (params[it.name]) params[it.name] = params[it.name].split("\n");
         });
       let res = {};
       try {

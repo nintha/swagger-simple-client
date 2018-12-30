@@ -31,7 +31,7 @@
         <div style="margin-top:10px; padding:0 10px; background-color: white;">
           <Tabs style="margin:0 10px;">
               <TabPane label="Flow">
-                <ApiFlow :path-detail-map="pathDetailMap" :json-url="jsonUrl" :definitions="jsonData.definitions"></ApiFlow>
+                <ApiFlow :selected-path="selectedPath" :path-detail-map="pathDetailMap" :json-url="jsonUrl" :definitions="jsonData.definitions"></ApiFlow>
               </TabPane>
               <TabPane label="Main">
                 <div v-if="selectedPathDetail">
@@ -51,6 +51,8 @@
 <script>
 import ApiRequestView from './ApiRequestView.vue';
 import ApiFlow from './ApiFlow'
+
+const KEY_SERVER_URL = 'API_DOCS_URL'
 export default {
   components: {ApiRequestView, ApiFlow},
   data() {
@@ -60,6 +62,7 @@ export default {
       viewTags: [],
       pathDetailMap: {},
       selectedPathDetail: null,
+      selectedPath: null
     };
   },
   methods: {
@@ -102,12 +105,13 @@ export default {
       });
     },
     selectPath(methodPath) {
+      this.selectedPath = methodPath;
       this.selectedPathDetail = this.pathDetailMap[methodPath];
       console.log('SELECT', methodPath, this.selectedPathDetail);
     }
   },
   created: function() {
-    this.jsonUrl = localStorage.getItem("API_DOCS_URL")
+    this.jsonUrl = localStorage.getItem(KEY_SERVER_URL)
     this.fetchSwaggerJson(this.jsonUrl)
   }
 };
