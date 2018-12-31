@@ -21,12 +21,13 @@
     <br>
     <br>
     <b>Script Result</b>
-    <Button type="error" size="small" ghost @click="resetResult" style="margin-bottom:5px;">clean</Button>
-    <Input :value="formatResult()" type="textarea" :autosize="{minRows: 2,maxRows: 20}" readonly/>
+    <Button type="error" size="small" ghost @click="resetResult" style="margin-bottom:5px;">clear</Button>
+    <Input :value="formatResult()" type="textarea" :autosize="{minRows: 2,maxRows: 7}" readonly/>
   </div>
 </template>
 <script>
 import Qs from "qs";
+import { setTimeout } from 'timers';
 
 export default {
   props: {
@@ -34,13 +35,16 @@ export default {
     apiInfo: Object,
     cardInfo: Object,
     definitions: Object,
-    serverUrl: String
+    serverUrl: String,
   },
-  // watch: {
-  //   cardInfo(val, oldVal){
-  //     console.log('watch cardInfo', val)
-  //   }
-  // },
+  watch: {
+    cardInfo(val, oldVal){
+      // console.log('watch cardInfo', val)
+      this.paramValues = this.cardInfo.paramValues || {};
+      this.scriptCode= this.cardInfo.scriptCode || "";
+      this.resetResult()
+    }
+  },
   data() {
     return {
       methodColors: {
@@ -225,6 +229,7 @@ export default {
         logContents.push(str);
       };
       const assert = this.assert;
+
       const response = {
         status: rawRes.status,
         data: rawRes.data
@@ -257,6 +262,9 @@ export default {
         message: "",
         logContents: []
       };
+    },
+    getScriptResult(){
+      return this.scriptResult;
     },
     /**
      * 获取当前卡片的数据

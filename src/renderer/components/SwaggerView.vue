@@ -1,6 +1,9 @@
 <template>
   <div>
-    <Sider width="300" :style="{position: 'fixed', height: '99vh',left: 0, overflow: 'auto', backgroundColor: 'white', borderRight: '1px #CCC solid'}">
+    <Sider
+      width="300"
+      :style="{position: 'fixed', height: '99vh',left: 0, overflow: 'auto', backgroundColor: 'white', borderRight: '1px #CCC solid'}"
+    >
       <Menu width="auto" @on-select="selectPath">
         <Submenu v-for="tag in viewTags" :name="tag.name" v-bind:key="tag.name">
           <template slot="title">
@@ -20,27 +23,37 @@
     </Sider>
     <Layout :style="{marginLeft: '300px'}">
       <Header :style="{background: '#fff', boxShadow: '0 2px 3px 2px rgba(0,0,0,.1)'}">
-        <router-link :to="'/'" style="margin-left:-25px" >
-          <Button>
-            <Icon type="ios-arrow-back"></Icon>
+        <router-link :to="'/'" style="margin-left:-25px">
+          <Button size="small">
+            <Icon type="md-home" size="20"/>
           </Button>
         </router-link>
-        <span style="font-weight: bolder; font-size:18px; vertical-align: middle; margin-left:10px;">{{jsonUrl}}</span>
+        <span
+          style="font-weight: bolder; font-size:18px; vertical-align: middle; margin-left:10px;"
+        >{{serverUrl}}</span>
       </Header>
       <Content>
         <div style="margin-top:10px; padding:0 10px; background-color: white;">
           <Tabs style="margin:0 10px;">
-              <TabPane label="Flow">
-                <ApiFlow :selected-path="selectedPath" :path-detail-map="pathDetailMap" :json-url="jsonUrl" :definitions="jsonData.definitions"></ApiFlow>
-              </TabPane>
-              <TabPane label="Main">
-                <div v-if="selectedPathDetail">
-                  <ApiRequestView :api-info="selectedPathDetail" :json-url="jsonUrl" :definitions="jsonData.definitions" :view-tags="viewTags"></ApiRequestView> 
-                </div>
-                <h1 v-else>
-                  Please select one API
-                </h1>
-              </TabPane>
+            <TabPane label="Flow">
+              <ApiFlow
+                :selected-path="selectedPath"
+                :path-detail-map="pathDetailMap"
+                :server-url="serverUrl"
+                :definitions="jsonData.definitions"
+              ></ApiFlow>
+            </TabPane>
+            <TabPane label="Main">
+              <div v-if="selectedPathDetail">
+                <ApiRequestView
+                  :api-info="selectedPathDetail"
+                  :json-url="serverUrl"
+                  :definitions="jsonData.definitions"
+                  :view-tags="viewTags"
+                ></ApiRequestView>
+              </div>
+              <h1 v-else>Please select one API</h1>
+            </TabPane>
           </Tabs>
         </div>
       </Content>
@@ -53,11 +66,12 @@ import ApiRequestView from './ApiRequestView.vue';
 import ApiFlow from './ApiFlow'
 
 const KEY_SERVER_URL = 'API_DOCS_URL'
+const KEY_SWAGGER_JSON = "KEY_SWAGGER_JSON";
 export default {
-  components: {ApiRequestView, ApiFlow},
+  components: { ApiRequestView, ApiFlow },
   data() {
     return {
-      jsonUrl: "",
+      serverUrl: "",
       jsonData: {},
       viewTags: [],
       pathDetailMap: {},
@@ -66,15 +80,11 @@ export default {
     };
   },
   methods: {
-    async fetchSwaggerJson(input) {
-      let res;
-      try {
-        res = await this.$http.get(input);
-      } catch (error) {
-        this.$Message.error(error.message);
-        return;
-      }
-      this.jsonData = res.data;
+    parseSwaggerJson() {
+      const json = localStorage.getItem(KEY_SWAGGER_JSON)
+      if (!json) return;
+
+      this.jsonData = JSON.parse(json);
       this.viewTags = this.jsonData.tags;
 
       const tagPathMap = {};
@@ -110,9 +120,9 @@ export default {
       console.log('SELECT', methodPath, this.selectedPathDetail);
     }
   },
-  created: function() {
-    this.jsonUrl = localStorage.getItem(KEY_SERVER_URL)
-    this.fetchSwaggerJson(this.jsonUrl)
+  created: function () {
+    this.serverUrl = localStorage.getItem(KEY_SERVER_URL)
+    this.parseSwaggerJson()
   }
 };
 </script>
