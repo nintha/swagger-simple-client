@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div slot="title">
+    <div>
       <Button type="success" @click="runFlow">Run all</Button>
       <Button type="info" @click="exportFlow">Export</Button>
       <Button type="warning" @click="importFlow">Import</Button>
@@ -76,7 +76,6 @@ export default {
       outputMessage: "",
       flowProcess: 0,
       flowStatus: 'active',
-      //end data
     };
   },
   computed: {

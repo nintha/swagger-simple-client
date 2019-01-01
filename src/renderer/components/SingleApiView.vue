@@ -8,13 +8,24 @@
     </div>
     <Table :columns="tableColumn" :data="apiInfo.parameters"></Table>
     <br>
-    <b>Script Code</b>
-    <Input
-      v-model="scriptCode"
-      type="textarea"
-      :autosize="{minRows: 2,maxRows: 20}"
-      placeholder="Enter something..."
-    />
+    <!-- <div>
+      <b>Before Request</b>
+      <Input
+        v-model="scriptCode"
+        type="textarea"
+        :autosize="{minRows: 2,maxRows: 20}"
+        placeholder="Enter something..."
+      />
+    </div> -->
+    <div>
+      <b>After Request</b>
+      <Input
+        v-model="scriptCode"
+        type="textarea"
+        :autosize="{minRows: 2,maxRows: 20}"
+        placeholder="Enter something..."
+      />
+    </div>
     <br>
     <br>
     <Button type="success" ghost long @click="runFlow(flowContext)">Run it</Button>

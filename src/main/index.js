@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import fs from 'fs'
+import path from 'path';
 /**
  * Set `__static` path to static files in production
  * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-static-assets.html
@@ -62,6 +63,27 @@ ipcMain.on('read-file', (event, arg) => {
       event.returnValue = fs.readFileSync(filenames[0]).toString()
     } else {
       event.returnValue = null
+    }
+  })
+})
+
+ipcMain.on('open-directory', (event, arg) => {
+  dialog.showOpenDialog({
+    properties: ['openDirectory']
+  }, function (directory) {
+    if (directory) {
+      const filenames = fs.readdirSync(directory[0]);
+      event.returnValue = filenames.map( filename =>{
+        const filePath = path.join(directory[0], filename)
+        const json = fs.readFileSync(filePath).toString()
+        return {
+          filename: filename,
+          data: JSON.parse(json)
+        }
+      })
+    }
+    else {
+      event.returnValue = null;
     }
   })
 })

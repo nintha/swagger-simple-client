@@ -35,6 +35,9 @@
       <Content>
         <div style="margin-top:10px; padding:0 10px; background-color: white;">
           <Tabs style="margin:0 10px;">
+            <TabPane label="FlowBox">
+              <ApiFlowBox></ApiFlowBox>
+            </TabPane>
             <TabPane label="Flow">
               <ApiFlow
                 :selected-path="selectedPath"
@@ -64,11 +67,12 @@
 <script>
 import ApiRequestView from './ApiRequestView.vue';
 import ApiFlow from './ApiFlow'
+import ApiFlowBox from './ApiFlowBox'
 
 const KEY_SERVER_URL = 'API_DOCS_URL'
 const KEY_SWAGGER_JSON = "KEY_SWAGGER_JSON";
 export default {
-  components: { ApiRequestView, ApiFlow },
+  components: { ApiRequestView, ApiFlow, ApiFlowBox },
   data() {
     return {
       serverUrl: "",
