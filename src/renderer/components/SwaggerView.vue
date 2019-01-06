@@ -34,19 +34,20 @@
       </Header>
       <Content>
         <div style="margin-top:10px; padding:0 10px; background-color: white;">
-          <Tabs style="margin:0 10px;">
-            <TabPane label="FlowBox">
-              <ApiFlowBox></ApiFlowBox>
+          <Tabs v-model="tabName" style="margin:0 10px;">
+            <TabPane label="FlowBox" name="FlowBox">
+              <ApiFlowBox :server-url="serverUrl" :path-detail-map="pathDetailMap" @to-flow-detail="toFlowDetail"></ApiFlowBox>
             </TabPane>
-            <TabPane label="Flow">
+            <TabPane label="Flow" name="Flow">
               <ApiFlow
                 :selected-path="selectedPath"
                 :path-detail-map="pathDetailMap"
                 :server-url="serverUrl"
                 :definitions="jsonData.definitions"
+                :flow-file-path="flowFilePath"
               ></ApiFlow>
             </TabPane>
-            <TabPane label="Main">
+            <TabPane label="Main" name="Main">
               <div v-if="selectedPathDetail">
                 <ApiRequestView
                   :api-info="selectedPathDetail"
@@ -80,7 +81,9 @@ export default {
       viewTags: [],
       pathDetailMap: {},
       selectedPathDetail: null,
-      selectedPath: null
+      selectedPath: null,
+      tabName: 'FlowBox',
+      flowFilePath: null,
     };
   },
   methods: {
@@ -122,6 +125,11 @@ export default {
       this.selectedPath = methodPath;
       this.selectedPathDetail = this.pathDetailMap[methodPath];
       console.log('SELECT', methodPath, this.selectedPathDetail);
+    },
+    toFlowDetail(filePath){
+      console.log('toFlowDetail', filePath);
+      this.tabName = 'Flow';
+      this.flowFilePath = filePath;
     }
   },
   created: function () {

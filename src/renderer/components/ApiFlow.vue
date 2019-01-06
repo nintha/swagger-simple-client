@@ -1,10 +1,10 @@
 <template>
   <div>
     <div>
-      <Button type="success" @click="runFlow">Run all</Button>
-      <Button type="info" @click="exportFlow">Export</Button>
-      <Button type="warning" @click="importFlow">Import</Button>
-      <Button type="error" @click="resetFlow">Remove all</Button>
+      <Button type="success" @click="runFlow()">Run all</Button>
+      <Button type="info" @click="exportFlow()">Save as</Button>
+      <Button type="warning" @click="importFlow()">Open file</Button>
+      <Button type="error" @click="resetFlow()">Remove all</Button>
     </div>
     <div style="background-color: #CCC; height: 1px; margin: 10px 0;"></div>
     <div>
@@ -41,7 +41,7 @@
           :card-info="card"
           :definitions="definitions"
           :server-url="serverUrl"
-          v-bind:ref="card.methodPath"
+          v-bind:ref="`card-ref-${index}-${card.methodPath}`"
         />
       </div>
       <div style="background-color: #CCC; height: 1px; margin: 15px 0;"></div>
@@ -63,7 +63,8 @@ export default {
     serverUrl: String,
     definitions: Object,
     viewTags: Array,
-    selectedPath: String
+    selectedPath: String,
+    flowFilePath: String,
   },
   data() {
     return {
@@ -83,6 +84,14 @@ export default {
       return this.cards.length == 0 ? 0 : Math.ceil(this.flowProcess / this.cards.length * 100);
     }
   },
+  watch: {
+    flowFilePath(val, oldVal) {
+      console.log('flowFilePath', val)
+      if (val) {
+        this.importFlow(val)
+      }
+    }
+  },
   methods: {
     getApiInfo(methodPath) {
       return this.pathDetailMap[methodPath];
@@ -99,7 +108,11 @@ export default {
       });
     },
     getCardRefs() {
-      return this.cards.map(it => this.$refs[it.methodPath][0]);
+      const rslist = [];
+      for (const [index, value] of this.cards.entries()) {
+        rslist.push(this.$refs[`card-ref-${index}-${value.methodPath}`][0]);
+      }
+      return rslist;
     },
     async runFlow() {
       // 清理之前的日志
@@ -109,8 +122,8 @@ export default {
 
       let errorMessage = null;
       try {
-        for (const [index, value] of this.cards.entries()) {
-          await this.$refs[value.methodPath][0].runFlow(this.context);
+        for (const [index, value] of this.getCardRefs().entries()) {
+          await value.runFlow(this.context);
           this.flowProcess = index + 1;
 
           if (this.context.card.scriptResult.status === 2) {
@@ -139,13 +152,15 @@ export default {
       }
       ipcRenderer.sendSync("save-file", JSON.stringify(cards));
     },
-    importFlow() {
-      const cards = this.getCardRefs().map(it => it.getCardInfo());
-      if (cards && cards.length > 0) {
-        this.$Message.warning("Only import data when the Flow is empty");
-        return;
+    importFlow(filePath) {
+      if (!filePath) {
+        const cards = this.getCardRefs().map(it => it.getCardInfo());
+        if (cards && cards.length > 0) {
+          this.$Message.warning("Only import data when the Flow is empty");
+          return;
+        }
       }
-      const json = ipcRenderer.sendSync("read-file");
+      const json = ipcRenderer.sendSync("open-file", filePath);
       if (json) {
         this.cards = JSON.parse(json);
         this.refreshCardsAsync()
@@ -190,6 +205,11 @@ export default {
     }
 
     // end method
+  },
+  created() {
+    if (this.flowFilePath) {
+      this.importFlow(this.flowFilePath)
+    }
   }
 };
 </script>

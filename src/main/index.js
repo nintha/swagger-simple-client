@@ -57,35 +57,49 @@ ipcMain.on('save-file', (event, arg) => {
   })
 })
 
-ipcMain.on('read-file', (event, arg) => {
-  dialog.showOpenDialog(function (filenames) {
-    if (filenames) {
-      event.returnValue = fs.readFileSync(filenames[0]).toString()
+ipcMain.on('open-file', (event, arg) => {
+  try {    
+    if (arg) {
+      event.returnValue = fs.readFileSync(arg).toString()
     } else {
-      event.returnValue = null
-    }
-  })
-})
-
-ipcMain.on('open-directory', (event, arg) => {
-  dialog.showOpenDialog({
-    properties: ['openDirectory']
-  }, function (directory) {
-    if (directory) {
-      const filenames = fs.readdirSync(directory[0]);
-      event.returnValue = filenames.map( filename =>{
-        const filePath = path.join(directory[0], filename)
-        const json = fs.readFileSync(filePath).toString()
-        return {
-          filename: filename,
-          data: JSON.parse(json)
+      dialog.showOpenDialog(function (filenames) {
+        if (filenames) {
+          event.returnValue = fs.readFileSync(filenames[0]).toString()
+        } else {
+          event.returnValue = null
         }
       })
     }
-    else {
-      event.returnValue = null;
-    }
-  })
+  } catch (error) {
+    event.returnValue = null
+  }
+})
+
+ipcMain.on('open-directory', (event, arg) => {
+  const readFileInDir = (dirPath) => {
+    const filenames = fs.readdirSync(dirPath);
+    return filenames.map(filename => {
+      const filePath = path.join(dirPath, filename)
+      const json = fs.readFileSync(filePath).toString()
+      return {
+        dirPath,
+        filePath,
+        filename,
+        data: JSON.parse(json)
+      }
+    });
+  }
+  if (arg) {
+    event.returnValue = readFileInDir(arg)
+  } else {
+    dialog.showOpenDialog({ properties: ['openDirectory'] }, function (directory) {
+      if (directory) {
+        event.returnValue = readFileInDir(directory[0])
+      } else {
+        event.returnValue = null;
+      }
+    });
+  }
 })
 
 

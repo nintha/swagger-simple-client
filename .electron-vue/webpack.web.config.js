@@ -97,7 +97,13 @@ let webConfig = {
       'process.env.IS_WEB': 'true'
     }),
     new webpack.HotModuleReplacementPlugin(),
-    new webpack.NoEmitOnErrorsPlugin()
+    new webpack.NoEmitOnErrorsPlugin(),
+    new CopyWebpackPlugin([
+      {
+        from: 'node_modules/monaco-editor/min/vs',
+        to: 'vs',
+      }
+    ])
   ],
   output: {
     filename: '[name].js',

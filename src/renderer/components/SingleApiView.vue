@@ -8,29 +8,32 @@
     </div>
     <Table :columns="tableColumn" :data="apiInfo.parameters"></Table>
     <br>
-    <!-- <div>
-      <b>Before Request</b>
-      <Input
-        v-model="scriptCode"
-        type="textarea"
-        :autosize="{minRows: 2,maxRows: 20}"
-        placeholder="Enter something..."
-      />
-    </div> -->
     <div>
       <b>After Request</b>
-      <Input
-        v-model="scriptCode"
-        type="textarea"
-        :autosize="{minRows: 2,maxRows: 20}"
-        placeholder="Enter something..."
-      />
+      <Button type="primary" ghost size="small" @click="modalStatus = true">Edit</Button>
+      <div
+        style="overflow: overlay; max-height:200px; font-size: 14px; border: 1px solid #CCC; border-radius:8px; padding:0 10px; margin-top:5px;"
+      >
+        <pre><code class="json">{{scriptCode}}</code></pre>
+      </div>
+      <Modal v-model="modalStatus" width="80" title="Code Editor" footer-hide>
+        <div v-if="modalStatus">
+          <MonacoEditor
+            class="editor"
+            style="height:300px;  border: 1px solid #CCC; margin-bottom: 5px;"
+            :value="scriptCode"
+            @change="onEditorChange"
+            language="javascript"
+            theme="vs"
+          ></MonacoEditor>
+        </div>
+      </Modal>
     </div>
-    <br>
-    <br>
-    <Button type="success" ghost long @click="runFlow(flowContext)">Run it</Button>
-    <br>
-    <br>
+
+    <div style="margin: 15px 0;">
+      <Button type="success" ghost long @click="runFlow(flowContext)">Run it</Button>
+    </div>
+
     <b>Script Result</b>
     <Button type="error" size="small" ghost @click="resetResult" style="margin-bottom:5px;">clear</Button>
     <Input :value="formatResult()" type="textarea" :autosize="{minRows: 2,maxRows: 7}" readonly/>
@@ -38,9 +41,10 @@
 </template>
 <script>
 import Qs from "qs";
-import { setTimeout } from 'timers';
+import MonacoEditor from "./MonacoEditor";
 
 export default {
+  components: { MonacoEditor },
   props: {
     flowContext: Object,
     apiInfo: Object,
@@ -49,10 +53,10 @@ export default {
     serverUrl: String,
   },
   watch: {
-    cardInfo(val, oldVal){
+    cardInfo(val, oldVal) {
       // console.log('watch cardInfo', val)
       this.paramValues = this.cardInfo.paramValues || {};
-      this.scriptCode= this.cardInfo.scriptCode || "";
+      this.scriptCode = this.cardInfo.scriptCode || "";
       this.resetResult()
     }
   },
@@ -75,8 +79,8 @@ export default {
                 {params.row.required ? (
                   <b>{params.row.name}</b>
                 ) : (
-                  params.row.name
-                )}
+                    params.row.name
+                  )}
               </span>
             );
           }
@@ -134,7 +138,8 @@ export default {
         status: 0, // 0-ready, 1-success, 2-failed
         message: "",
         logContents: []
-      }
+      },
+      modalStatus: false,
 
       // end data
     };
@@ -155,6 +160,11 @@ export default {
 
       const url = this.getDomain(this.serverUrl) + this.apiInfo.path;
       const params = Object.assign({}, this.paramValues);
+      for (const key in params) {
+        if (params[key] === undefined || params[key] === null || params[key] === '') {
+          delete params[key];
+        }
+      }
       try {
         this.solvePlaceholder(params, this.flowContext);
         (this.apiInfo.parameters || [])
@@ -178,7 +188,7 @@ export default {
           url,
           params: params, // query
           data: params, // formdata
-          paramsSerializer: function(params) {
+          paramsSerializer: function (params) {
             // 处理array类型参数格式化
             return Qs.stringify(params, { arrayFormat: "repeat" });
           }
@@ -263,8 +273,8 @@ export default {
     formatResult() {
       return this.scriptResult.status > 0
         ? ["", "Pass", this.scriptResult.message][this.scriptResult.status] +
-            "\n\n=====LOG MESSAGE=====\n" +
-            this.scriptResult.logContents.join("\n")
+        "\n\n=====LOG MESSAGE=====\n" +
+        this.scriptResult.logContents.join("\n")
         : "";
     },
     resetResult() {
@@ -274,7 +284,7 @@ export default {
         logContents: []
       };
     },
-    getScriptResult(){
+    getScriptResult() {
       return this.scriptResult;
     },
     /**
@@ -286,6 +296,9 @@ export default {
         paramValues: this.paramValues,
         scriptCode: this.scriptCode
       };
+    },
+    onEditorChange(value) {
+      this.scriptCode = value;
     }
     // end method
   }

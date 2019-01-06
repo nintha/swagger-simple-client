@@ -16,7 +16,7 @@
     <br>
     <Card dis-hover v-show="responseCode > 0">
       <p slot="title">Response code: {{responseCode}}</p>
-      <div style="overflow: overlay; max-height:600px">
+      <div style="overflow: overlay; max-height:600px; ">
         <pre><code class="json">{{responseData}}</code></pre>
       </div>
     </Card>
@@ -30,12 +30,20 @@
 <script>
 import Qs from "qs";
 import DefinitionView from "./DefinitionView";
+import MonacoEditor from "./MonacoEditor";
+
 export default {
   components: {
-    DefinitionView
+    DefinitionView,
+    MonacoEditor
   },
-  data: function() {
+  data: function () {
     return {
+      codeValue: `
+      function foo() {
+        return 'foo'
+      }`.trim()
+      ,
       methodColors: {
         get: "primary",
         post: "success",
@@ -53,8 +61,8 @@ export default {
                 {params.row.required ? (
                   <b>{params.row.name}</b>
                 ) : (
-                  params.row.name
-                )}
+                    params.row.name
+                  )}
               </span>
             );
           }
@@ -116,7 +124,7 @@ export default {
     definitions: Object
   },
   watch: {
-    apiInfo: function(val, oldVal) {
+    apiInfo: function (val, oldVal) {
       this.saveApiContext(oldVal.methodPath);
       this.refresh();
     }
@@ -150,7 +158,7 @@ export default {
           url,
           params: params, // query
           data: params, // formdata
-          paramsSerializer: function(params) {
+          paramsSerializer: function (params) {
             // 处理array类型参数格式化
             return Qs.stringify(params, { arrayFormat: "repeat" });
           }
@@ -197,8 +205,8 @@ export default {
 
       this.definitionNames = this.apiInfo.parameters
         ? this.apiInfo.parameters
-            .filter(it => it.schema)
-            .map(it => it.schema.$ref.split("/")[2])
+          .filter(it => it.schema)
+          .map(it => it.schema.$ref.split("/")[2])
         : [];
     },
     getEmptyApiContext() {

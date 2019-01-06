@@ -11,6 +11,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const { VueLoaderPlugin } = require('vue-loader')
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 /**
  * List of node_modules to include in webpack bundle
@@ -24,7 +25,7 @@ let whiteListedModules = ['vue']
 let rendererConfig = {
   devtool: '#cheap-module-eval-source-map',
   entry: {
-    renderer: path.join(__dirname, '../src/renderer/main.js')
+    renderer: path.join(__dirname, '../src/renderer/main.js'),
   },
   externals: [
     ...Object.keys(dependencies || {}).filter(d => !whiteListedModules.includes(d))
@@ -124,9 +125,11 @@ let rendererConfig = {
         : false
     }),
     new webpack.HotModuleReplacementPlugin(),
-    new webpack.NoEmitOnErrorsPlugin()
+    new webpack.NoEmitOnErrorsPlugin(),
+    new MonacoWebpackPlugin()
   ],
   output: {
+    globalObject: 'self',
     filename: '[name].js',
     libraryTarget: 'commonjs2',
     path: path.join(__dirname, '../dist/electron')
