@@ -70,6 +70,8 @@ export default {
     return {
       context: {
         prev: null,
+        serverUrl: this.serverUrl,
+        pathDetailMap: this.pathDetailMap,
         global: {},
         card: {}
       },

@@ -1,5 +1,18 @@
 import Axios from 'axios'
 import Qs from "qs";
+import { SaferEval } from 'safer-eval';
+
+const myeval = (code, context) => {
+  const safer = new SaferEval(context);
+  const lines = (code || "").split("\n")
+  let retVal = null;
+  // 逐条解析
+  for (const line of lines) {
+    // '\n'是必须的，不然会解析异常
+    retVal = safer.runInContext(line + '\n');
+  }
+  return retVal;
+}
 
 /**
  * 检测必填参数，返回缺少的参数数组
@@ -22,10 +35,14 @@ const getHost = (url) => {
  */
 const solvePlaceholder = (paramValues, context) => {
   const placeholderRegex = /\$\{(.+?)\}/gi;
-  // 供eval调用
+
   const prev = context.card.response ? context.card.response.data : {};
   prev.paramValues = paramValues;
-  // console.log('prev', prev)
+
+  const evalCtx = {
+    prev,
+    context
+  }
 
   for (let param in paramValues) {
     let value = paramValues[param];
@@ -33,7 +50,7 @@ const solvePlaceholder = (paramValues, context) => {
       const matchs = value.match(placeholderRegex);
       matchs.forEach(it => {
         const fieldName = placeholderRegex.exec(it)[1];
-        value = value.replace(it, eval(fieldName));
+        value = value.replace(it, myeval(fieldName, evalCtx));
       });
       paramValues[param] = value;
     }
@@ -64,8 +81,8 @@ const sendRequestAsync = async (card, context) => {
   const url = getHost(context.serverUrl) + path;
   const params = Object.assign({}, paramValues) || [];
   // remove null field
-  for(const key in params){
-    if(params[key] === undefined || params[key] === null || params[key] === ''){
+  for (const key in params) {
+    if (params[key] === undefined || params[key] === null || params[key] === '') {
       delete params[key];
     }
   }
@@ -92,6 +109,7 @@ const sendRequestAsync = async (card, context) => {
       }
     });
   } catch (e) {
+    // console.log(e)
     res = e.response;
   }
 
@@ -107,6 +125,7 @@ const sendRequestAsync = async (card, context) => {
 const runCardAsync = async (card, context) => {
   const { scriptCode } = card;
   const rawRes = await sendRequestAsync(card, context)
+
   // console.log('rawRes',rawRes)
   const response = {
     status: rawRes.status,
@@ -120,9 +139,14 @@ const runCardAsync = async (card, context) => {
     logContents.push(str);
   };
 
+  const evalCtx = {
+    echo,
+    response,
+    assert
+  };
   const scriptResult = {};
   try {
-    eval(scriptCode);
+    myeval(scriptCode, evalCtx)
     scriptResult.status = 1;
   } catch (error) {
     scriptResult.status = 2;
@@ -197,5 +221,6 @@ const delay = time => new Promise(a => setTimeout(a, time))
 
 export default {
   runFlowAsync,
+  runCardAsync,
   delay
 }
